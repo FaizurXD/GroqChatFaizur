@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faizur AI Chat</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>Faizur AI Chat</h1>
+  </header>
+  <div id="chat-container">
+    <ul id="messages">
+      <% messages.forEach(message => { %>
+        <% if (message.sender === 'user') { %>
+          <li class="message user-message">
+            <span class="message-label">You:</span>
+            <span class="message-text"><%= message.text %></span>
+          </li>
+        <% } else { %>
+          <li class="message bot-message">
+            <span class="message-label">FaizurAI:</span>
+            <span class="message-text"><%= message.text %></span>
+          </li>
+        <% } %>
+      <% }); %>
+    </ul>
+    <form id="form">
+      <input id="input" autocomplete="off" placeholder="Type a message...">
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/script.js"></script>
+</body>
+      </html>

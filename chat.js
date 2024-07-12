@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const Groq = require('groq-sdk');
 const fs = require('fs');
 require('dotenv').config();
+require('./reciver.js');
 
 const app = express();
 const server = http.createServer(app);

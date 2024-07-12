@@ -31,7 +31,7 @@ const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
 const PORT = 3000;
 
-const client = new Client({ intents: Intents.ALL });
+const client = new Client({ intents: 32767 });
 
 client.once('ready', () => {
     console.log('Discord bot is ready!');

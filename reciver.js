@@ -43,7 +43,7 @@ client.once('ready', () => {
 
 client.login(DISCORD_TOKEN);
 
-app.post('/faizur/payment/gateway/order/success', async (req, res) => {
+app.post('/faizurpg', async (req, res) => {
     try {
         const orderData = req.body;
         console.log(orderData);

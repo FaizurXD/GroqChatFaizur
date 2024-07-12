@@ -8,34 +8,30 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 
-// Setup rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 99 // limit each IP to 99 requests per windowMs
+    windowMs: 15 * 60 * 1000,
+    max: 99
 });
 app.use(limiter);
 
-// Setup logging
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.json(),
     transports: [
         new winston.transports.File({ filename: 'error.log', level: 'error' }),
-        new winston.transports.File({ filename: 'combined.log' }),
-    ],
+        new winston.transports.File({ filename: 'combined.log' })
+    ]
 });
 
 if (process.env.NODE_ENV !== 'production') {
-    logger.add(new winston.transports.Console({
-        format: winston.format.simple(),
-    }));
+    logger.add(new winston.transports.Console({ format: winston.format.simple() }));
 }
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
 const PORT = 3000;
 
-const client = new Client({ intents: 32767 });
+const client = new Client({ intents: Intents.ALL });
 
 client.once('ready', () => {
     console.log('Discord bot is ready!');
@@ -53,11 +49,7 @@ const orderSchema = Joi.object({
     serverType: Joi.string().required(),
     totalPrice: Joi.number().required(),
     transactionId: Joi.string().required(),
-    items: Joi.array().items(
-        Joi.object({
-            name: Joi.string().required()
-        })
-    ).required()
+    items: Joi.array().items(Joi.object({ name: Joi.string().required() })).required()
 });
 
 app.post('/faizurpg', async (req, res) => {
@@ -70,7 +62,6 @@ app.post('/faizurpg', async (req, res) => {
         }
 
         const orderData = req.body;
-
         if (!orderData || Object.keys(orderData).length === 0) {
             logger.warn('Received an empty request');
             return res.status(400).send({ message: 'Your request is empty' });

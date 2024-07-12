@@ -2,6 +2,7 @@ const express = require('express');
 const { Client, Intents, MessageEmbed } = require('discord.js');
 const rateLimit = require('express-rate-limit');
 const winston = require('winston');
+const Joi = require('joi');
 require('dotenv').config();
 
 const app = express();
@@ -42,13 +43,29 @@ client.once('ready', () => {
 
 client.login(DISCORD_TOKEN);
 
+// Define the schema for request validation
+const orderSchema = Joi.object({
+    username: Joi.string().required(),
+    accountType: Joi.string().required(),
+    currency: Joi.string().valid('INR', 'PKR').required(),
+    serverType: Joi.string().required(),
+    totalPrice: Joi.number().required(),
+    transactionId: Joi.string().required(),
+    items: Joi.array().items(
+        Joi.object({
+            name: Joi.string().required()
+        })
+    ).required()
+});
+
 app.post('/faizurpg', async (req, res) => {
     try {
-        const orderData = req.body;
-
-        if (!orderData || Object.keys(orderData).length === 0) {
-            return res.status(400).send({ message: 'Your request is empty' });
+        const { error } = orderSchema.validate(req.body);
+        if (error) {
+            return res.status(400).send({ message: `Invalid request format: ${error.details[0].message}` });
         }
+
+        const orderData = req.body;
 
         console.log(orderData);
 
@@ -63,7 +80,7 @@ app.post('/faizurpg', async (req, res) => {
                 { name: 'Account Type', value: orderData.accountType, inline: true },
                 { name: 'Currency', value: orderData.currency, inline: true },
                 { name: 'Server Type', value: orderData.serverType, inline: true },
-                { name: 'Total Price', value: orderData.totalPrice, inline: true },
+                { name: 'Total Price', value: orderData.totalPrice.toString(), inline: true },
                 { name: 'Transaction ID', value: orderData.transactionId, inline: true },
                 { name: 'Ordered Items', value: orderedItems, inline: false }
             )

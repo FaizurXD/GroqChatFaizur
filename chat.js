@@ -94,7 +94,7 @@ app.post('/faizurpg', async (req, res) => {
         res.status(200).send({ message: 'Order received and sent to Discord channel successfully.' });
     } catch (error) {
         logger.error('Error processing order:', error);
-        res.status(500).send({ message: 'Failed to process order.' });
+        res.status(500).send({ message: `Failed to process order: ${error.message}` });
     }
 });
 

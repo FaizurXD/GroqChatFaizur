@@ -39,11 +39,13 @@ const client = new Client({ intents: 32767 });
 
 client.once('ready', () => {
     console.log('Discord bot is ready!');
+    logger.info('Discord bot is ready!');
 });
 
-client.login(DISCORD_TOKEN);
+client.login(DISCORD_TOKEN).catch(error => {
+    logger.error('Failed to login to Discord:', error);
+});
 
-// Define the schema for request validation
 const orderSchema = Joi.object({
     username: Joi.string().required(),
     accountType: Joi.string().required(),
@@ -60,14 +62,21 @@ const orderSchema = Joi.object({
 
 app.post('/faizurpg', async (req, res) => {
     try {
+        logger.info('Received a request to /faizurpg');
         const { error } = orderSchema.validate(req.body);
         if (error) {
+            logger.warn('Invalid request format:', error.details[0].message);
             return res.status(400).send({ message: `Invalid request format: ${error.details[0].message}` });
         }
 
         const orderData = req.body;
 
-        console.log(orderData);
+        if (!orderData || Object.keys(orderData).length === 0) {
+            logger.warn('Received an empty request');
+            return res.status(400).send({ message: 'Your request is empty' });
+        }
+
+        logger.info('Order data:', orderData);
 
         const orderedItems = orderData.items.map(item => item.name).join(', ');
 
@@ -90,6 +99,7 @@ app.post('/faizurpg', async (req, res) => {
         const channel = await client.channels.fetch(CHANNEL_ID);
         await channel.send({ embeds: [embed] });
 
+        logger.info('Order sent to Discord channel successfully');
         res.status(200).send({ message: 'Order received and sent to Discord channel successfully.' });
     } catch (error) {
         logger.error('Error processing order:', error);
@@ -99,4 +109,5 @@ app.post('/faizurpg', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    logger.info(`Server is running on port ${PORT}`);
 });

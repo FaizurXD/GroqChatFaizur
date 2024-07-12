@@ -1,86 +1,85 @@
 const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const http = require('http');
-const { Server } = require('socket.io');
-const Groq = require('groq-sdk');
-const fs = require('fs');
+const { Client, Intents, MessageEmbed } = require('discord.js');
+const rateLimit = require('express-rate-limit');
+const winston = require('winston');
 require('dotenv').config();
-require('./reciver.js');
 
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
-const port = process.env.PORT || 3000;
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+app.use(express.json());
 
-app.set('view engine', 'ejs');
-app.set('views', './views');
+// Setup rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 99 // limit each IP to 99 requests per windowMs
+});
+app.use(limiter);
 
-app.use(bodyParser.json());
-app.use(cors());
-app.use(express.static('public'));
-
-const logErrorToFile = (error) => {
-  const errorMessage = `[${new Date().toISOString()}] ${error}\n`;
-  fs.appendFile('err.txt', errorMessage, (err) => {
-    if (err) console.error('Failed to write to err.txt:', err);
-  });
-};
-
-app.get('/chat', (req, res) => {
-  const messages = [];
-  res.render('chat', { messages });
+// Setup logging
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    transports: [
+        new winston.transports.File({ filename: 'error.log', level: 'error' }),
+        new winston.transports.File({ filename: 'combined.log' }),
+    ],
 });
 
-app.post('/chat', async (req, res) => {
-  const { message } = req.body;
+if (process.env.NODE_ENV !== 'production') {
+    logger.add(new winston.transports.Console({
+        format: winston.format.simple(),
+    }));
+}
 
-  try {
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        {
-          role: 'user',
-          content: message,
-        },
-      ],
-      model: 'llama3-8b-8192',
-    });
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+const CHANNEL_ID = process.env.CHANNEL_ID;
+const PORT = 3000;
 
-    const botMessage = chatCompletion.choices[0]?.message?.content || 'No response';
-    res.json({ reply: botMessage });
-  } catch (error) {
-    console.error('Error fetching chat completion:', error);
-    logErrorToFile(error);
-    res.status(500).json({ reply: 'Error: Unable to get response.' });
-  }
+const client = new Client({ intents: 32767 });
+
+client.once('ready', () => {
+    console.log('Discord bot is ready!');
 });
 
-io.on('connection', (socket) => {
-  socket.on('chat message', async (msg) => {
+client.login(DISCORD_TOKEN);
+
+app.post('/faizurpg', async (req, res) => {
     try {
-      const chatCompletion = await groq.chat.completions.create({
-        messages: [
-          {
-            role: 'user',
-            content: msg,
-          },
-        ],
-        model: 'llama3-8b-8192',
-      });
+        const orderData = req.body;
 
-      const botMessage = chatCompletion.choices[0]?.message?.content || 'No response';
-      socket.emit('chat message', botMessage);
+        if (!orderData || Object.keys(orderData).length === 0) {
+            return res.status(400).send({ message: 'Your request is empty' });
+        }
+
+        console.log(orderData);
+
+        const orderedItems = orderData.items.map(item => item.name).join(', ');
+
+        const embed = new MessageEmbed()
+            .setColor('#0099ff')
+            .setTitle('New Order Received!')
+            .setDescription('Here are the details of the new order:')
+            .addFields(
+                { name: 'Username', value: orderData.username, inline: true },
+                { name: 'Account Type', value: orderData.accountType, inline: true },
+                { name: 'Currency', value: orderData.currency, inline: true },
+                { name: 'Server Type', value: orderData.serverType, inline: true },
+                { name: 'Total Price', value: orderData.totalPrice, inline: true },
+                { name: 'Transaction ID', value: orderData.transactionId, inline: true },
+                { name: 'Ordered Items', value: orderedItems, inline: false }
+            )
+            .setTimestamp()
+            .setFooter('Faizur');
+
+        const channel = await client.channels.fetch(CHANNEL_ID);
+        await channel.send({ embeds: [embed] });
+
+        res.status(200).send({ message: 'Order received and sent to Discord channel successfully.' });
     } catch (error) {
-      console.error('Error fetching chat completion:', error);
-      logErrorToFile(error);
-      socket.emit('chat message', 'Error: Unable to get response.');
+        logger.error('Error processing order:', error);
+        res.status(500).send({ message: 'Failed to process order.' });
     }
-  });
-
-  socket.on('disconnect', () => {});
 });
 
-server.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });

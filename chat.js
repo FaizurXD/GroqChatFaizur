@@ -1,5 +1,5 @@
 const express = require('express');
-const { Client, Intents, MessageEmbed } = require('discord.js');
+const { Client, Intents, EmbedBuilder } = require('discord.js');
 const rateLimit = require('express-rate-limit');
 const winston = require('winston');
 const Joi = require('joi');
@@ -71,7 +71,7 @@ app.post('/faizurpg', async (req, res) => {
 
         const orderedItems = orderData.items.map(item => item.name).join(', ');
 
-        const embed = new MessageEmbed()
+        const embed = new EmbedBuilder()
             .setColor('#0099ff')
             .setTitle('New Order Received!')
             .setDescription('Here are the details of the new order:')
@@ -85,7 +85,7 @@ app.post('/faizurpg', async (req, res) => {
                 { name: 'Ordered Items', value: orderedItems, inline: false }
             )
             .setTimestamp()
-            .setFooter('Faizur');
+            .setFooter({ text: 'Faizur' });
 
         const channel = await client.channels.fetch(CHANNEL_ID);
         await channel.send({ embeds: [embed] });

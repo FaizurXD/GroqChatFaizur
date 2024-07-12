@@ -29,6 +29,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
+const AUTH_KEY = process.env.AUTH_KEY;
 const PORT = 3000;
 
 const client = new Client({ intents: 32767 });
@@ -54,6 +55,12 @@ const orderSchema = Joi.object({
 
 app.post('/faizurpg', async (req, res) => {
     try {
+        const authKey = req.headers['authorization'];
+        if (authKey !== AUTH_KEY) {
+            logger.warn('Unauthorized access attempt');
+            return res.status(403).send({ message: 'Unauthorized' });
+        }
+
         logger.info('Received a request to /faizurpg');
         const { error } = orderSchema.validate(req.body);
         if (error) {

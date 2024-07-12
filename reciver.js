@@ -1,5 +1,4 @@
 const express = require('express');
-const axios = require('axios');
 const { Client, Intents, MessageEmbed } = require('discord.js');
 const rateLimit = require('express-rate-limit');
 const winston = require('winston');
@@ -33,12 +32,12 @@ if (process.env.NODE_ENV !== 'production') {
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
-const PORT = 3000
+const PORT = 3000;
 
 const client = new Client({ intents: 32767 });
 
 client.once('ready', () => {
-    console.log('Discord bot is ready!!!!');
+    console.log('Discord bot is ready!');
 });
 
 client.login(DISCORD_TOKEN);
@@ -46,6 +45,11 @@ client.login(DISCORD_TOKEN);
 app.post('/faizurpg', async (req, res) => {
     try {
         const orderData = req.body;
+
+        if (!orderData || Object.keys(orderData).length === 0) {
+            return res.status(400).send({ message: 'Your request is empty' });
+        }
+
         console.log(orderData);
 
         const orderedItems = orderData.items.map(item => item.name).join(', ');

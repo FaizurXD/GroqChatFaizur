@@ -11,7 +11,7 @@ app.use(express.json());
 // Setup rate limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 99 // limit each IP to 100 requests per windowMs
+    max: 99 // limit each IP to 99 requests per windowMs
 });
 app.use(limiter);
 
@@ -33,9 +33,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
-const PORT = 3000
+const PORT = process.env.PORT || 3000;
 
-const client = new Client({ intents: 32767 });
+const client = new Client({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
 
 client.once('ready', () => {
     console.log('Discord bot is ready!');

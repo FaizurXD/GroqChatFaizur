@@ -33,7 +33,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
-const PORT = process.env.PORT || 3000;
+const PORT = 3000
 
 const client = new Client({ intents: 32767 });
 

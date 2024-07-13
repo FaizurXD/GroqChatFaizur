@@ -2,7 +2,6 @@ const express = require('express');
 const { Client, Intents, EmbedBuilder } = require('discord.js');
 const rateLimit = require('express-rate-limit');
 const winston = require('winston');
-const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -31,7 +30,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
-const AUTH_KEY = fs.readFileSync('../DB/auth.faizur', 'utf-8').trim();
+const AUTH_KEY = process.env.AUTH_KEY;
 const PORT = 3000;
 
 const client = new Client({ intents: 32767 });
@@ -70,7 +69,7 @@ app.post('/faizurpg', async (req, res) => {
                 { name: 'Ordered Items', value: orderedItems, inline: false }
             )
             .setTimestamp()
-            .setFooter('Faizur');
+            .setFooter({ text: 'Faizur' });
 
         const channel = await client.channels.fetch(CHANNEL_ID);
         await channel.send({ embeds: [embed] });

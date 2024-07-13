@@ -61,7 +61,7 @@ app.post('/faizurpg', async (req, res) => {
 
         const embed = new EmbedBuilder()
             .setColor('#0099ff')
-            .setTitle('New Order Received!')
+            .setTitle('New Order Received! __**plzz first verify that payment is received or not**__')
             .setDescription('Here are the details of the new order:')
             .addFields(
                 { name: 'Username', value: orderData.username, inline: true },

@@ -2,7 +2,7 @@ const express = require('express');
 const { Client, Intents, EmbedBuilder } = require('discord.js');
 const rateLimit = require('express-rate-limit');
 const winston = require('winston');
-const Joi = require('joi');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -19,63 +19,41 @@ const logger = winston.createLogger({
     format: winston.format.json(),
     transports: [
         new winston.transports.File({ filename: 'error.log', level: 'error' }),
-        new winston.transports.File({ filename: 'combined.log' })
-    ]
+        new winston.transports.File({ filename: 'combined.log' }),
+    ],
 });
 
 if (process.env.NODE_ENV !== 'production') {
-    logger.add(new winston.transports.Console({ format: winston.format.simple() }));
+    logger.add(new winston.transports.Console({
+        format: winston.format.simple(),
+    }));
 }
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CHANNEL_ID = process.env.CHANNEL_ID;
-const AUTH_KEY = process.env.AUTH_KEY;
+const AUTH_KEY = fs.readFileSync('../DB/auth.faizur', 'utf-8').trim();
 const PORT = 3000;
 
 const client = new Client({ intents: 32767 });
 
 client.once('ready', () => {
     console.log('Discord bot is ready!');
-    logger.info('Discord bot is ready!');
 });
 
-client.login(DISCORD_TOKEN).catch(error => {
-    logger.error('Failed to login to Discord:', error);
-});
-
-const orderSchema = Joi.object({
-    username: Joi.string().required(),
-    accountType: Joi.string().required(),
-    currency: Joi.string().valid('INR', 'PKR').required(),
-    serverType: Joi.string().required(),
-    totalPrice: Joi.number().required(),
-    transactionId: Joi.string().required(),
-    items: Joi.array().items(Joi.object({ name: Joi.string().required() })).required()
-});
+client.login(DISCORD_TOKEN);
 
 app.post('/faizurpg', async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || authHeader !== AUTH_KEY) {
+        return res.status(401).send({ message: 'Unauthorized request' });
+    }
+
+    const orderData = req.body;
+    if (!orderData.username || !orderData.accountType || !orderData.currency || !orderData.serverType || !orderData.totalPrice || !orderData.transactionId || !orderData.items) {
+        return res.status(400).send({ message: 'Invalid order data' });
+    }
+
     try {
-        const authKey = req.headers['authorization'];
-        if (authKey !== AUTH_KEY) {
-            logger.warn('Unauthorized access attempt');
-            return res.status(403).send({ message: 'Unauthorized' });
-        }
-
-        logger.info('Received a request to /faizurpg');
-        const { error } = orderSchema.validate(req.body);
-        if (error) {
-            logger.warn('Invalid request format:', error.details[0].message);
-            return res.status(400).send({ message: `Invalid request format: ${error.details[0].message}` });
-        }
-
-        const orderData = req.body;
-        if (!orderData || Object.keys(orderData).length === 0) {
-            logger.warn('Received an empty request');
-            return res.status(400).send({ message: 'Your request is empty' });
-        }
-
-        logger.info('Order data:', orderData);
-
         const orderedItems = orderData.items.map(item => item.name).join(', ');
 
         const embed = new EmbedBuilder()
@@ -87,25 +65,23 @@ app.post('/faizurpg', async (req, res) => {
                 { name: 'Account Type', value: orderData.accountType, inline: true },
                 { name: 'Currency', value: orderData.currency, inline: true },
                 { name: 'Server Type', value: orderData.serverType, inline: true },
-                { name: 'Total Price', value: orderData.totalPrice.toString(), inline: true },
+                { name: 'Total Price', value: orderData.totalPrice, inline: true },
                 { name: 'Transaction ID', value: orderData.transactionId, inline: true },
                 { name: 'Ordered Items', value: orderedItems, inline: false }
             )
             .setTimestamp()
-            .setFooter({ text: 'Faizur' });
+            .setFooter('Faizur');
 
         const channel = await client.channels.fetch(CHANNEL_ID);
         await channel.send({ embeds: [embed] });
 
-        logger.info('Order sent to Discord channel successfully');
         res.status(200).send({ message: 'Order received and sent to Discord channel successfully.' });
     } catch (error) {
         logger.error('Error processing order:', error);
-        res.status(500).send({ message: `Failed to process order: ${error.message}` });
+        res.status(500).send({ message: 'Failed to process order.', error: error.message });
     }
 });
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    logger.info(`Server is running on port ${PORT}`);
 });

@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios');
 const { Client, Intents, EmbedBuilder } = require('discord.js');
 const rateLimit = require('express-rate-limit');
 const winston = require('winston');
@@ -7,12 +8,14 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 
+// Setup rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 99
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 99 // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
 
+// Setup logging
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.json(),
@@ -42,14 +45,15 @@ client.once('ready', () => {
 client.login(DISCORD_TOKEN);
 
 app.post('/faizurpg', async (req, res) => {
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers['authorization'];
     if (!authHeader || authHeader !== AUTH_KEY) {
-        return res.status(401).send({ message: 'Unauthorized request' });
+        return res.status(403).send({ message: 'Unauthorized' });
     }
 
     const orderData = req.body;
-    if (!orderData.username || !orderData.accountType || !orderData.currency || !orderData.serverType || !orderData.totalPrice || !orderData.transactionId || !orderData.items) {
-        return res.status(400).send({ message: 'Invalid order data' });
+
+    if (!orderData || !orderData.username || !orderData.accountType || !orderData.currency || !orderData.serverType || !orderData.totalPrice || !orderData.transactionId || !orderData.items) {
+        return res.status(400).send({ message: 'Invalid request payload' });
     }
 
     try {
